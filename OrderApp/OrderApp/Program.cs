@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using OrderApp.Data;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,7 +11,16 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Add session for authentication
+// Add authentication
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Auth/Login";
+        options.AccessDeniedPath = "/Auth/AccessDenied";
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+    });
+
+// Add session
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
@@ -32,9 +42,11 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+// Add authentication middleware
+app.UseAuthentication();
 app.UseAuthorization();
 
-app.UseSession(); // Add session middleware
+app.UseSession();
 
 app.MapControllerRoute(
     name: "default",
