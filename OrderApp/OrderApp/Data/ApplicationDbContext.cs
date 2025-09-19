@@ -11,9 +11,7 @@ namespace OrderApp.Data
         }
 
         public DbSet<User> Users { get; set; }
-
-        // Comenta temporalmente hasta que creemos estos modelos
-        // public DbSet<Product> Products { get; set; }
+        public DbSet<Product> Products { get; set; }
         // public DbSet<Order> Orders { get; set; }
         // public DbSet<OrderItem> OrderItems { get; set; }
 
@@ -21,12 +19,23 @@ namespace OrderApp.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Configuración de índice único para email
+            // Configuración de Users
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
                 .IsUnique();
 
-            // Comenta temporalmente las configuraciones de Order
+            // Configuración de Products
+            modelBuilder.Entity<Product>()
+                .HasIndex(p => p.Name);
+
+            modelBuilder.Entity<Product>()
+                .HasIndex(p => p.Category);
+
+            modelBuilder.Entity<Product>()
+                .Property(p => p.Price)
+                .HasColumnType("decimal(18,2)");
+
+            // Comentar temporalmente hasta crear Order y OrderItem
             /*
             modelBuilder.Entity<Order>()
                 .HasOne(o => o.Client)
@@ -36,15 +45,9 @@ namespace OrderApp.Data
 
             modelBuilder.Entity<OrderItem>()
                 .HasOne(oi => oi.Product)
-                .WithMany()
+                .WithMany(p => p.OrderItems)
                 .HasForeignKey(oi => oi.ProductId)
                 .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<Product>()
-                .HasIndex(p => p.Name);
-
-            modelBuilder.Entity<Order>()
-                .HasIndex(o => o.OrderDate);
             */
         }
     }
