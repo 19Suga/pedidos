@@ -1,88 +1,65 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using OrderApp.Data;
 using OrderApp.Models;
 using System.Security.Claims;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication;
 
 namespace OrderApp.Controllers
 {
     public class AuthController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly ApplicationDbContext _db;
+        public AuthController(ApplicationDbContext db) => _db = db;
 
-        public AuthController(ApplicationDbContext context)
+        [HttpGet]
+        public IActionResult Login(string? returnUrl = null)
         {
-            _context = context;
-        }
-
-        // GET: /Auth/Login
-        public IActionResult Login()
-        {
+            ViewData["ReturnUrl"] = returnUrl;
             return View();
         }
 
-        // POST: /Auth/Login
-        [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(LoginViewModel model)
+        [HttpPost]
+        public async Task<IActionResult> Login(string email, string password, string? returnUrl = null)
         {
-            if (ModelState.IsValid)
+            var hashed = SimpleHasher.Hash(password);
+            var user = _db.Users.FirstOrDefault(u => u.Email == email && u.Password == hashed);
+            if (user == null)
             {
-                var user = await _context.Users
-                    .FirstOrDefaultAsync(u => u.Email == model.Email && u.Password == model.Password);
-
-                if (user != null)
-                {
-                    // Crear claims
-                    var claims = new List<Claim>
-                    {
-                        new Claim(ClaimTypes.Name, user.Name),
-                        new Claim(ClaimTypes.Email, user.Email),
-                        new Claim(ClaimTypes.Role, user.Role),
-                        new Claim("UserId", user.Id.ToString())
-                    };
-
-                    // Crear identity
-                    var claimsIdentity = new ClaimsIdentity(
-                        claims, CookieAuthenticationDefaults.AuthenticationScheme);
-
-                    // Propiedades de autenticación
-                    var authProperties = new AuthenticationProperties
-                    {
-                        IsPersistent = model.RememberMe,
-                        ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(30)
-                    };
-
-                    // Iniciar sesión
-                    await HttpContext.SignInAsync(
-                        CookieAuthenticationDefaults.AuthenticationScheme,
-                        new ClaimsPrincipal(claimsIdentity),
-                        authProperties);
-
-                    return RedirectToAction("Index", "Home");
-                }
-
-                ModelState.AddModelError(string.Empty, "Credenciales inválidas");
+                TempData["Error"] = "Credenciales inválidas.";
+                return View();
             }
 
-            return View(model);
-        }
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Name, user.Name),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Role, user.Role ?? "Cliente")
+            };
 
-        // POST: /Auth/Logout
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Logout()
-        {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var principal = new ClaimsPrincipal(identity);
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+
             return RedirectToAction("Index", "Home");
         }
 
-        // GET: /Auth/AccessDenied
-        public IActionResult AccessDenied()
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        [HttpPost]
+        public async Task<IActionResult> Logout()
         {
-            return View();
+            await HttpContext.SignOutAsync();
+            return RedirectToAction("Login");
         }
+
+        [HttpGet]
+        public IActionResult AccessDenied() => View();
     }
 }

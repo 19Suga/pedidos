@@ -8,6 +8,7 @@
 
 <p>
     <a asp-action="Create" class="btn btn-success">Crear Nuevo Producto</a>
+    <a asp-controller="Orders" asp-action="Cart" class="btn btn-outline-primary ms-2">Ver Carrito</a>
 </p>
 
 <!-- Formulario de Búsqueda y Filtros -->
@@ -48,6 +49,7 @@
             <th>Stock</th>
             <th>Categoría</th>
             <th>Estado</th>
+            <th style="min-width:180px;">Carrito</th>
             <th>Acciones</th>
         </tr>
     </thead>
@@ -74,6 +76,23 @@
                         <span class="badge bg-danger">Inactivo</span>
                     }
                 </td>
+
+                <!-- NUEVA columna: agregar al carrito -->
+                <td>
+                    <form asp-controller="Orders" asp-action="AddToCart" method="post" class="d-flex align-items-center gap-2">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="productId" value="@item.Id" />
+                        <input type="number" name="qty" value="1" min="1" max="@(item.Stock)" class="form-control form-control-sm" style="width:85px" @(item.Stock <= 0 ? "disabled" : "") />
+                        <button type="submit" class="btn btn-sm btn-success" @(item.Stock <= 0 ? "disabled" : "")>
+                            Agregar
+                        </button>
+                    </form>
+                    @if (item.Stock <= 0)
+                    {
+                        <small class="text-muted">Sin stock</small>
+                    }
+                </td>
+
                 <td>
                     <div class="btn-group" role="group">
                         <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning">Editar</a>

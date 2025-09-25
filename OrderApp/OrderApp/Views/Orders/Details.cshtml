@@ -1,5 +1,18 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
-}
+﻿@model OrderApp.Models.Order
+<h2>Detalle Pedido #@Model.Id</h2>
+<p><b>Cliente:</b> @Model.User?.Name</p>
+<p><b>Estado:</b> @Model.Status</p>
+<p><b>Total:</b> @Model.Total</p>
+
+<h4>Productos</h4>
+<table class="table">
+    <tr><th>Producto</th><th>Cantidad</th><th>Precio</th></tr>
+    @foreach (var i in Model.Items)
+    {
+        <tr>
+            <td>@i.Product?.Name</td>
+            <td>@i.Quantity</td>
+            <td>@i.UnitPrice</td>
+        </tr>
+    }
+</table>

@@ -1,36 +1,59 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using OrderApp.Data;
-using Microsoft.AspNetCore.Authentication.Cookies;
+using OrderApp.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// MVC
 builder.Services.AddControllersWithViews();
 
-// Add DbContext
+// DbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Add authentication
+// Authentication (Cookies)
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
         options.LoginPath = "/Auth/Login";
         options.AccessDeniedPath = "/Auth/AccessDenied";
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.SlidingExpiration = true;
     });
 
-// Add session
+// Authorization
+builder.Services.AddAuthorization();
+
+// Session
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(30);
     options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true;
+    options.IdleTimeout = TimeSpan.FromHours(2);
 });
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Seed admin
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.Migrate();
+
+    if (!db.Users.Any(u => u.Email == "admin@local"))
+    {
+        var admin = new User
+        {
+            Name = "Admin",
+            Email = "admin@local",
+            Role = "Admin",
+            Password = SimpleHasher.Hash("Admin123!")
+        };
+        db.Users.Add(admin);
+        db.SaveChanges();
+    }
+}
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -42,14 +65,23 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-// Add authentication middleware
+app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
-
-app.UseSession();
 
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
+
+// Helper hash sencillo (solo demo)
+public static class SimpleHasher
+{
+    public static string Hash(string input)
+    {
+        using var sha = System.Security.Cryptography.SHA256.Create();
+        var bytes = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(input));
+        return Convert.ToHexString(bytes);
+    }
+}

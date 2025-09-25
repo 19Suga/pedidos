@@ -1,5 +1,15 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
-}
+﻿@model IEnumerable<OrderApp.Models.Order>
+<h2>Pedidos</h2>
+<table class="table">
+    <tr><th>ID</th><th>Cliente</th><th>Estado</th><th>Total</th><th></th></tr>
+    @foreach (var o in Model)
+    {
+        <tr>
+            <td>@o.Id</td>
+            <td>@o.User?.Name</td>
+            <td>@o.Status</td>
+            <td>@o.Total</td>
+            <td><a asp-action="Details" asp-route-id="@o.Id">Ver</a></td>
+        </tr>
+    }
+</table>
