@@ -7,9 +7,12 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using OrderApp.Data;
 using OrderApp.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace OrderApp.Controllers
 {
+    [Authorize(Roles = "Admin")]
+ 
     public class UsersController : Controller
     {
         private readonly ApplicationDbContext _context;

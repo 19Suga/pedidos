@@ -16,3 +16,23 @@
         </tr>
     }
 </table>
+@{
+    bool canManage = User.IsInRole("Admin") || User.IsInRole("Empleado");
+}
+@if (canManage)
+{
+    <form asp-action="ChangeStatus" method="post" class="mt-3">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" value="@Model.Id" />
+        <div class="input-group" style="max-width:420px;">
+            <select name="status" class="form-select">
+                <option value="Pending" selected="@("Pending" == Model.Status)">Pendiente</option>
+                <option value="Processed" selected="@("Processed" == Model.Status)">Procesado</option>
+                <option value="Shipped" selected="@("Shipped" == Model.Status)">Enviado</option>
+                <option value="Delivered" selected="@("Delivered" == Model.Status)">Entregado</option>
+            </select>
+            <button type="submit" class="btn btn-warning">Cambiar estado</button>
+        </div>
+    </form>
+}
+
