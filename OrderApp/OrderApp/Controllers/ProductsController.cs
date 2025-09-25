@@ -7,37 +7,29 @@ using OrderApp.Models;
 
 namespace OrderApp.Controllers
 {
-    [Authorize(Roles = "Admin,Empleado")]
+    [Authorize] // cualquier usuario autenticado (Admin, Empleado, Cliente)
     public class ProductsController : Controller
     {
         private readonly ApplicationDbContext _context;
+        public ProductsController(ApplicationDbContext context) => _context = context;
 
-        public ProductsController(ApplicationDbContext context)
-        {
-            _context = context;
-        }
-
-        // GET: Products
+        // GET: Products (todos los roles autenticados)
         public async Task<IActionResult> Index(string? searchString, string? categoryFilter, decimal? minPrice, decimal? maxPrice)
         {
             var products = _context.Products.AsQueryable();
 
-            // Filtro por nombre o descripción
             if (!string.IsNullOrWhiteSpace(searchString))
                 products = products.Where(p => p.Name.Contains(searchString) || p.Description.Contains(searchString));
 
-            // Filtro por categoría
             if (!string.IsNullOrWhiteSpace(categoryFilter))
                 products = products.Where(p => p.Category == categoryFilter);
 
-            // Filtro por rango de precio
             if (minPrice.HasValue)
                 products = products.Where(p => p.Price >= minPrice.Value);
 
             if (maxPrice.HasValue)
                 products = products.Where(p => p.Price <= maxPrice.Value);
 
-            // Obtener categorías únicas y ordenadas para el dropdown
             var categories = await _context.Products
                 .Where(p => !string.IsNullOrEmpty(p.Category))
                 .Select(p => p.Category!)
@@ -51,109 +43,85 @@ namespace OrderApp.Controllers
             return View(list);
         }
 
-        // GET: Products/Details/5
+        // GET: Products/Details/5 (todos los roles autenticados)
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null) return NotFound();
-
-            var product = await _context.Products
-                .FirstOrDefaultAsync(m => m.Id == id);
-
+            var product = await _context.Products.FirstOrDefaultAsync(m => m.Id == id);
             if (product == null) return NotFound();
-
             return View(product);
         }
 
-        // GET: Products/Create
-        public IActionResult Create()
-        {
-            return View();
-        }
+        // ===== Acciones SOLO Admin/Empleado =====
+        [Authorize(Roles = "Admin,Empleado")]
+        public IActionResult Create() => View();
 
-        // POST: Products/Create
+        [Authorize(Roles = "Admin,Empleado")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Id,Name,Description,Price,Stock,Category,IsActive")] Product product)
         {
-            if (ModelState.IsValid)
-            {
-                product.CreatedAt = DateTime.Now;
-                product.UpdatedAt = DateTime.Now;
+            if (!ModelState.IsValid) return View(product);
 
-                _context.Add(product);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            }
-            return View(product);
+            product.CreatedAt = DateTime.Now;
+            product.UpdatedAt = DateTime.Now;
+
+            _context.Add(product);
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
         }
 
-        // GET: Products/Edit/5
+        [Authorize(Roles = "Admin,Empleado")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null) return NotFound();
-
             var product = await _context.Products.FindAsync(id);
             if (product == null) return NotFound();
-
             return View(product);
         }
 
-        // POST: Products/Edit/5
+        [Authorize(Roles = "Admin,Empleado")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Description,Price,Stock,Category,IsActive,CreatedAt")] Product product)
         {
             if (id != product.Id) return NotFound();
+            if (!ModelState.IsValid) return View(product);
 
-            if (ModelState.IsValid)
+            try
             {
-                try
-                {
-                    product.UpdatedAt = DateTime.Now;
-                    _context.Update(product);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!ProductExists(product.Id))
-                        return NotFound();
-                    else
-                        throw;
-                }
-                return RedirectToAction(nameof(Index));
+                product.UpdatedAt = DateTime.Now;
+                _context.Update(product);
+                await _context.SaveChangesAsync();
             }
-            return View(product);
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!_context.Products.Any(e => e.Id == product.Id))
+                    return NotFound();
+                else
+                    throw;
+            }
+            return RedirectToAction(nameof(Index));
         }
 
-        // GET: Products/Delete/5
+        [Authorize(Roles = "Admin,Empleado")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();
-
-            var product = await _context.Products
-                .FirstOrDefaultAsync(m => m.Id == id);
-
+            var product = await _context.Products.FirstOrDefaultAsync(m => m.Id == id);
             if (product == null) return NotFound();
-
             return View(product);
         }
 
-        // POST: Products/Delete/5
+        [Authorize(Roles = "Admin,Empleado")]
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var product = await _context.Products.FindAsync(id);
-            if (product != null)
-                _context.Products.Remove(product);
-
+            if (product != null) _context.Products.Remove(product);
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
-        }
-
-        private bool ProductExists(int id)
-        {
-            return _context.Products.Any(e => e.Id == id);
         }
     }
 }

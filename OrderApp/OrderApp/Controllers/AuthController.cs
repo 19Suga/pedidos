@@ -32,12 +32,19 @@ namespace OrderApp.Controllers
                 return View();
             }
 
+            // Normalizar rol guardado en BD a: Admin / Empleado / Cliente
+            var roleRaw = (user.Role ?? "Cliente").Trim();
+            string roleNormalized;
+            if (roleRaw.Equals("admin", StringComparison.OrdinalIgnoreCase)) roleNormalized = "Admin";
+            else if (roleRaw.Equals("empleado", StringComparison.OrdinalIgnoreCase)) roleNormalized = "Empleado";
+            else roleNormalized = "Cliente";
+
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Name, user.Name),
                 new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role ?? "Cliente")
+                new Claim(ClaimTypes.Role, roleNormalized)
             };
 
             var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);

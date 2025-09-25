@@ -34,23 +34,31 @@ builder.Services.AddSession(options =>
 
 var app = builder.Build();
 
-// Seed admin
+// Seed admin (con try/catch opcional para evitar caída con errores de conexión/migración)
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.Migrate();
-
-    if (!db.Users.Any(u => u.Email == "admin@local"))
+    try
     {
-        var admin = new User
+        db.Database.Migrate();
+
+        if (!db.Users.Any(u => u.Email == "admin@local"))
         {
-            Name = "Admin",
-            Email = "admin@local",
-            Role = "Admin",
-            Password = SimpleHasher.Hash("Admin123!")
-        };
-        db.Users.Add(admin);
-        db.SaveChanges();
+            var admin = new User
+            {
+                Name = "Admin",
+                Email = "admin@local",
+                Role = "Admin",
+                Password = SimpleHasher.Hash("Admin123!")
+            };
+            db.Users.Add(admin);
+            db.SaveChanges();
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("Error al migrar/sembrar la base de datos: " + ex.Message);
+        throw; // si prefieres que no se caiga, comenta esta línea
     }
 }
 
@@ -75,11 +83,12 @@ app.MapControllerRoute(
 
 app.Run();
 
-// Helper hash sencillo (solo demo)
+// Helper hash sencillo (solo demo) — ahora tolera null/empty
 public static class SimpleHasher
 {
-    public static string Hash(string input)
+    public static string Hash(string? input)
     {
+        if (string.IsNullOrEmpty(input)) return string.Empty;
         using var sha = System.Security.Cryptography.SHA256.Create();
         var bytes = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(input));
         return Convert.ToHexString(bytes);
