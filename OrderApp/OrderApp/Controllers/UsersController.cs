@@ -1,4 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using OrderApp.Data;
 using OrderApp.Models;
@@ -14,13 +19,13 @@ namespace OrderApp.Controllers
             _context = context;
         }
 
-        // GET: Users
+        // GET: Users1
         public async Task<IActionResult> Index()
         {
             return View(await _context.Users.ToListAsync());
         }
 
-        // GET: Users/Details/5
+        // GET: Users1/Details/5
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
@@ -38,16 +43,18 @@ namespace OrderApp.Controllers
             return View(user);
         }
 
-        // GET: Users/Create
+        // GET: Users1/Create
         public IActionResult Create()
         {
             return View();
         }
 
-        // POST: Users/Create
+        // POST: Users1/Create
+        // To protect from overposting attacks, enable the specific properties you want to bind to.
+        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,Email,Password,Role")] User user)
+        public async Task<IActionResult> Create([Bind("Id,Name,Email,Password,Role,CreatedAt")] User user)
         {
             if (ModelState.IsValid)
             {
@@ -58,7 +65,7 @@ namespace OrderApp.Controllers
             return View(user);
         }
 
-        // GET: Users/Edit/5
+        // GET: Users1/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -74,7 +81,9 @@ namespace OrderApp.Controllers
             return View(user);
         }
 
-        // POST: Users/Edit/5
+        // POST: Users1/Edit/5
+        // To protect from overposting attacks, enable the specific properties you want to bind to.
+        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Email,Password,Role,CreatedAt")] User user)
@@ -107,7 +116,7 @@ namespace OrderApp.Controllers
             return View(user);
         }
 
-        // GET: Users/Delete/5
+        // GET: Users1/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -125,7 +134,7 @@ namespace OrderApp.Controllers
             return View(user);
         }
 
-        // POST: Users/Delete/5
+        // POST: Users1/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
